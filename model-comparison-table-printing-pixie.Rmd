@@ -1,0 +1,73 @@
+---
+title: "Model Comparison Tables"
+author: "Josh de Leeuw"
+date: "February 5, 2016"
+output: Grmd::docx_document
+---
+
+```{r, echo=FALSE, message=F, warning=F}
+require(pixiedust)
+load("bayes-factor-analysis-results.Rdata")
+boundary.main.effects <- as.data.frame(bf.boundary.main.effects.only)
+boundary.main.effects$time <- NULL
+boundary.main.effects$code <- NULL
+boundary.main.effects$error <- NULL
+
+boundary.stim_type.interactions <- as.data.frame(bf.boundary.combined.stim_type)
+boundary.stim_type.interactions$time <- NULL
+boundary.stim_type.interactions$code <- NULL
+boundary.stim_type.interactions$error <- NULL
+rownames(boundary.stim_type.interactions) <- gsub("stim_type \\+ train_type \\+ dimension \\+ category_type \\+ trial_type \\+ mturk_id \\+ train_type:category_type", "&beta;", rownames(boundary.stim_type.interactions))
+
+sciNotation <- function(x, digits = 1) { 
+    if (length(x) > 1) { 
+        return(append(sciNotation(x[1]), sciNotation(x[-1]))) 
+    } 
+    if (!x) return(0) 
+    exponent <- floor(log10(x)) 
+    base <- round(x / 10^exponent, digits)
+    return(paste0(base," x 10<sup>",exponent,"</sup>"))
+}
+
+pretty_sci_notation <- function(x, digits = 1) {
+  if(x < 10000 && x >= .00001) { return(round(x, digits)) }
+  y <- as.character(sciNotation(x, digits))
+  return(y)
+}
+
+medley_bf <- function(x, bf.type = "10") {
+  y <- x %>%
+  sprinkle_colnames(.rownames = "Model") %>%
+  sprinkle(part="head", rows=c(1), border = c('top','bottom')) %>%
+  sprinkle(rows=c(max(x$body$row)), border= c('bottom'))
+  
+  if(bf.type == "10"){
+    return(y %>% 
+             sprinkle(cols=c('bf'), fn = quote(pretty_sci_notation(value, digits=2))) %>%
+             sprinkle_colnames(bf = "BF<sub>10</sub>")
+           )
+  } else if(bf.type == "01"){
+    return(y %>% 
+             sprinkle(cols=c('bf'), fn = quote(pretty_sci_notation(1/value, digits=2))) %>%
+             sprinkle_colnames(bf = "BF<sub>01</sub>")
+           )
+  }
+}
+
+```
+
+
+```{r, echo=FALSE, warning=F, results='asis'}
+
+
+
+# print the table using pixiedust library
+dust(boundary.main.effects, keep_rownames = T) %>%
+  medley_bf(bf.type="10") %>%
+  sprinkle_print_method("html")
+
+dust(boundary.stim_type.interactions, keep_rownames = T) %>%
+  medley_bf(bf.type="01") %>%
+  sprinkle_print_method("html")
+  
+```

@@ -4,7 +4,6 @@ require(plyr)
 require(sciplot)
 require(gridExtra)
 require(ggplot2)
-require(ggthemes)
 source('data & analysis/helpers/withinSE.R')
 
 #### load data ####
@@ -12,8 +11,9 @@ source('data & analysis/helpers/withinSE.R')
 alldata <- read.csv2('data & analysis/raw-data/filtered-data-no-mturk-id.csv')
 
 #### count subjects per condition ####
-subcount <- ddply(alldata, .(mturk_id, exp_condition), function(subset){return(1)})
-table(subcount$exp_condition)
+subcount <- ddply(alldata, .(mturk_id, exp_condition, dimension), function(subset){return(1)})
+subcount$full_exp_condition <- do.call(paste0, c(subcount[c('exp_condition','dimension')]))
+table(subcount$full_exp_condition)
 
 #### adding columns for relevant_distance and irrelevant_distance
 alldata$relevant_distance <- mapply(function(x,y,relevant){
@@ -68,7 +68,7 @@ onedimensiononly$varying_dimension <- sapply(onedimensiononly$relevant_distance,
   return("irrelevant")
 })
 
-dimension_test <- ddply(onedimensiononly, .(mturk_id, trial_type, stim_type, train_type, varying_dimension), function(s){
+dimension_test <- ddply(onedimensiononly, .(mturk_id, trial_type, stim_type, train_type, varying_dimension, dimension), function(s){
   m <- mean(s$common_score)
 
   test_m_one <- subset(z_onedimonly, trial_type==s$trial_type[1])$mean
@@ -78,16 +78,23 @@ dimension_test <- ddply(onedimensiononly, .(mturk_id, trial_type, stim_type, tra
   return(c(z=z_one))
 })
 
+# export for BayesFactor R ####
+
+write.csv(dimension_test, row.names=F, file="data & analysis/export-data/bf-dimension.csv")
+
+# dimension plots ####
+
 dimension_summary <- summarySEwithin(dimension_test, measurevar = "z", idvar="mturk_id", withinvars = "varying_dimension", betweenvars = c("train_type"))
 
 dimension_main_plot <- ggplot(dimension_summary, aes(x=varying_dimension,y=z,ymin=z-se,ymax=z+se,colour=train_type,group=train_type))+
+  geom_hline(yintercept=0, colour="lightgrey", linetype="dashed")+
   geom_line()+
   geom_errorbar(width=0.2)+
   geom_point(size=6, fill="white", shape=21)+
-  scale_colour_grey(start=0.1, end=0.5,labels=c("Control","Training"), guide=FALSE)+
+  scale_colour_manual(values=c("red","blue"),labels=c("Control","Training"), guide=FALSE)+
   scale_x_discrete(labels=c("Irrelevant", "Relevant"))+
-  labs(x="\nVarying Dimension", y="Score on Common Transformed Scale (±SEM)\n",colour="Training Condition")+
-  theme_light()+
+  labs(x="\n ", y="Score on Common Transformed Scale (±SEM)\n",colour="Training Condition")+
+  theme_bw(base_size=16)+
   theme(panel.grid=element_blank())
 
 # breakout by task
@@ -95,24 +102,40 @@ dimension_main_plot <- ggplot(dimension_summary, aes(x=varying_dimension,y=z,ymi
 dimension_task_summary <- summarySEwithin(dimension_test, measurevar = "z", idvar="mturk_id", withinvars = "varying_dimension", betweenvars = c("train_type", "trial_type"))
 
 dimension_task_plot <- ggplot(dimension_task_summary, aes(x=varying_dimension,y=z,ymin=z-se,ymax=z+se,colour=train_type,group=train_type))+
+  geom_hline(yintercept=0, colour="lightgrey", linetype="dashed")+
   geom_line(position=position_dodge(width=0.2))+
   geom_errorbar(width=0.2, position=position_dodge(width=0.2))+
   geom_point(size=3, fill="white", shape=21,position=position_dodge(width=0.2))+
-  scale_colour_grey(start=0.1, end=0.5,labels=c("Control","Training"))+
+  scale_colour_manual(values=c("red","blue"),labels=c("Control","Training"), guide=FALSE)+
   scale_x_discrete(labels=c("Irrelevant", "Relevant"))+
   labs(x="\nVarying Dimension", y="",colour="Training Condition")+
   facet_grid(trial_type ~ .)+
-  theme_light()+
-  theme(panel.grid=element_blank(), strip.text.y = element_text(colour='grey30'), strip.background = element_rect(colour="grey70",fill=rgb(0.95, 0.95, 0.95)))
+  theme_bw(base_size=16)+
+  theme(panel.grid=element_blank(), strip.background = element_rect(colour="grey10",fill=rgb(0.95, 0.95, 0.95)))
+
+# breakout by task and stimulus type
+
+dimension_task_stimulus_summary <- summarySEwithin(dimension_test, measurevar = "z", idvar="mturk_id", withinvars = "varying_dimension", betweenvars = c("train_type", "trial_type", "stim_type"))
+
+dimension_task_stimulus_plot <- ggplot(dimension_task_stimulus_summary, aes(x=varying_dimension,y=z,ymin=z-se,ymax=z+se,colour=train_type,group=train_type))+
+  geom_hline(yintercept=0, colour="lightgrey", linetype="dashed")+
+  geom_line(position=position_dodge(width=0.2))+
+  geom_errorbar(width=0.2, position=position_dodge(width=0.2))+
+  geom_point(size=3, fill="white", shape=21,position=position_dodge(width=0.2))+
+  scale_colour_manual(values=c("red","blue"),labels=c("Control","Training"))+
+  scale_x_discrete(labels=c("Irrelevant", "Relevant"))+
+  labs(x="\n ", y="",colour="Training Condition")+
+  facet_grid(trial_type + stim_type ~ .)+
+  theme_bw(base_size=16)+
+  theme(panel.grid=element_blank(), axis.text.y = element_text(size=10), strip.text = element_text(size=10),strip.background = element_rect(colour="grey10",fill=rgb(0.95, 0.95, 0.95)))
 
 # make one figure
 
-grid.arrange(dimension_main_plot, dimension_task_plot, ncol=2)
+grid.arrange(dimension_main_plot, dimension_task_plot, dimension_task_stimulus_plot, ncol=3)
 
+## BETWEEN V WITHIN ####
 
-## BETWEEN V WITHIN
-
-boundary_test <- ddply(subset(onedimensiononly, varying_dimension=="relevant" & distance < 3), .(mturk_id, trial_type, stim_type, train_type, category_type), function(s){
+boundary_test <- ddply(subset(onedimensiononly, varying_dimension=="relevant" & distance < 3), .(mturk_id, trial_type, stim_type, train_type, category_type, dimension), function(s){
   m <- mean(s$common_score)
   test_m <- subset(z_boundaryonly, trial_type==s$trial_type[1])$mean
   test_s <- subset(z_boundaryonly, trial_type==s$trial_type[1])$sd
@@ -122,16 +145,22 @@ boundary_test <- ddply(subset(onedimensiononly, varying_dimension=="relevant" & 
 
 boundary_test$trial_type <- factor(as.character(boundary_test$trial_type))
 
+# export for BayesFactor R ####
+
+write.csv(boundary_test, row.names=F, file="data & analysis/export-data/bf-boundary.csv")
+
+# plotting boundary ####
 boundary_summary <- summarySEwithin(boundary_test, measurevar = 'z', idvar="mturk_id", withinvars = 'category_type', betweenvars = c('train_type'))
 
 boundary_main_plot <- ggplot(boundary_summary, aes(x=category_type,y=z,ymin=z-se,ymax=z+se,colour=train_type,group=train_type))+
+  geom_hline(yintercept=0, colour="lightgrey", linetype="dashed")+
   geom_line(position=position_dodge(width=0.2))+
   geom_errorbar(width=0.2, position=position_dodge(width=0.2))+
   geom_point(size=6, fill="white", shape=21,position=position_dodge(width=0.2))+
-  scale_colour_grey(start=0.1, end=0.5,labels=c("Control","Training"), guide=FALSE)+
-  scale_x_discrete(labels=c("Between Category", "Within Category"))+
-  labs(x="\nPair Type", y="Score on Common Transformed Scale (±SEM)\n",colour="Training Condition")+
-  theme_light()+
+  scale_colour_manual(values=c("red","blue"),labels=c("Control","Training"), guide=FALSE)+
+  scale_x_discrete(labels=c("Between Category\n", "Within Category\n"))+
+  labs(x="\n ", y="Score on Common Transformed Scale (±SEM)\n",colour="Training Condition")+
+  theme_bw(base_size=16)+
   theme(panel.grid=element_blank())
 
 # by task
@@ -139,21 +168,38 @@ boundary_main_plot <- ggplot(boundary_summary, aes(x=category_type,y=z,ymin=z-se
 boundary_task_summary <- summarySEwithin(boundary_test, measurevar = 'z', idvar="mturk_id", withinvars = 'category_type', betweenvars = c('train_type', 'trial_type'))
 
 boundary_task_plot <- ggplot(boundary_task_summary, aes(x=category_type,y=z,ymin=z-se,ymax=z+se,colour=train_type,group=train_type))+
+  geom_hline(yintercept=0, colour="lightgrey", linetype="dashed")+
   geom_line(position=position_dodge(width=0.2))+
   geom_errorbar(width=0.2, position=position_dodge(width=0.2))+
   geom_point(size=3, fill="white", shape=21,position=position_dodge(width=0.2))+
-  scale_colour_grey(start=0.1, end=0.5,labels=c("Control","Training"))+
-  scale_x_discrete(labels=c("Between Category", "Within Category"))+
+  scale_colour_manual(values=c("red","blue"),labels=c("Control","Training"), guide=FALSE)+
+  scale_x_discrete(labels=c("Between Category\n", "Within Category\n"))+
   labs(x="\nPair Type", y="",colour="Training Condition")+
   facet_grid(trial_type ~ .)+
-  theme_light()+
-  theme(panel.grid=element_blank(), strip.text.y = element_text(colour='grey30'), strip.background = element_rect(colour="grey70",fill=rgb(0.95, 0.95, 0.95)))
+  theme_bw(base_size=16)+
+  theme(panel.grid=element_blank(), strip.background = element_rect(colour="grey10",fill=rgb(0.95, 0.95, 0.95)))
+
+# by task and stimulus set
+
+boundary_task_stimulus_summary <- summarySEwithin(boundary_test, measurevar = 'z', idvar="mturk_id", withinvars = 'category_type', betweenvars = c('train_type', 'trial_type', 'stim_type'))
+
+boundary_task_stimulus_plot <- ggplot(boundary_task_stimulus_summary, aes(x=category_type,y=z,ymin=z-se,ymax=z+se,colour=train_type,group=train_type))+
+  geom_hline(yintercept=0, colour="lightgrey", linetype="dashed")+
+  geom_line(position=position_dodge(width=0.2))+
+  geom_errorbar(width=0.2, position=position_dodge(width=0.2))+
+  geom_point(size=3, fill="white", shape=21,position=position_dodge(width=0.2))+
+  scale_colour_manual(values=c("red","blue"),labels=c("Control","Training"))+
+  scale_x_discrete(labels=c("Between\nCategory", "Within\nCategory"))+
+  labs(x="\n ", y="",colour="Training Condition")+
+  facet_grid(trial_type + stim_type ~ .)+
+  theme_bw(base_size=16)+
+  theme(panel.grid=element_blank(), axis.text.y = element_text(size=10), strip.text = element_text(size=10),strip.background = element_rect(colour="grey10",fill=rgb(0.95, 0.95, 0.95)))
 
 # make one figure
 
-grid.arrange(boundary_main_plot, boundary_task_plot, ncol=2)
+grid.arrange(boundary_main_plot, boundary_task_plot, boundary_task_stimulus_plot, ncol=3)
 
-### combine both figures into one
+### combine both figures into one ####
 
 grid.arrange(
   textGrob('(a)'),
@@ -164,7 +210,7 @@ grid.arrange(
   heights=c(0.03,0.47,0.03,0.47)
 )
 
-### descriptive stats ###
+### descriptive stats ####
 
 descriptiveSummary <- function(data, factors){
   subjectlevel <- ddply(data, c(factors, .(mturk_id)), function(s){
