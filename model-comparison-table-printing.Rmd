@@ -1,8 +1,6 @@
 ---
-title: "Model Comparison Tables"
-author: "Josh de Leeuw"
-date: "February 5, 2016"
-output: Grmd::docx_document
+title: "Appendix"
+output: Gmisc::docx_document
 ---
 
 ```{r, echo=FALSE, message=F, warning=F}
@@ -13,14 +11,15 @@ pretty_model_names <- function(x){
   replacements <- list(
     c("stim_type", "Stimulus"),
     c("train_type", "Training"),
-    c("category_type", "Pair"),
+    c("category_type", "CategoryType"),
     c("trial_type", "Assessment"),
     c("mturk_id", "ID"),
+    c("varying_dimension", "Dimension"),
     c("dimension", "Relevant")
   )
   
   for(r in replacements){
-    x <- gsub(r[1],r[2],x)
+    x <- gsub(r[1],r[2],x, ignore.case = F)
   }
   return(x)
 }
@@ -55,7 +54,7 @@ boundary.stim_type.interactions <- as.data.frame(bf.boundary.combined.stim_type)
 boundary.stim_type.interactions$time <- NULL
 boundary.stim_type.interactions$code <- NULL
 boundary.stim_type.interactions$error <- NULL
-rownames(boundary.stim_type.interactions) <- gsub("stim_type \\+ train_type \\+ dimension \\+ category_type \\+ trial_type \\+ mturk_id \\+ train_type:category_type", "&beta;<sub>boundary</sub>", rownames(boundary.stim_type.interactions))
+rownames(boundary.stim_type.interactions) <- gsub("stim_type \\+ train_type \\+ dimension \\+ category_type \\+ trial_type \\+ mturk_id \\+ train_type:category_type", "&beta;<sub>Boundary</sub>", rownames(boundary.stim_type.interactions))
 boundary.stim_type.interactions$Model <- rownames(boundary.stim_type.interactions)
 boundary.stim_type.interactions$Model <- sapply(boundary.stim_type.interactions$Model, function(s) { return(pretty_model_names(s)) })
 boundary.stim_type.interactions$bf <- pretty_sci_notation(1 / boundary.stim_type.interactions$bf, digits=2)
@@ -66,49 +65,112 @@ boundary.trial_type.interactions <- as.data.frame(bf.boundary.combined.trial_typ
 boundary.trial_type.interactions$time <- NULL
 boundary.trial_type.interactions$code <- NULL
 boundary.trial_type.interactions$error <- NULL
-rownames(boundary.trial_type.interactions) <- gsub("stim_type \\+ train_type \\+ dimension \\+ category_type \\+ trial_type \\+ mturk_id \\+ train_type:category_type", "&beta;<sub>boundary</sub>", rownames(boundary.trial_type.interactions))
+rownames(boundary.trial_type.interactions) <- gsub("stim_type \\+ train_type \\+ dimension \\+ category_type \\+ trial_type \\+ mturk_id \\+ train_type:category_type", "&beta;<sub>Boundary</sub>", rownames(boundary.trial_type.interactions))
 boundary.trial_type.interactions$Model <- rownames(boundary.trial_type.interactions)
 boundary.trial_type.interactions$Model <- sapply(boundary.trial_type.interactions$Model, function(s) { return(pretty_model_names(s)) })
 boundary.trial_type.interactions$bf <- pretty_sci_notation(1 / boundary.trial_type.interactions$bf, digits=2)
 boundary.trial_type.interactions <- boundary.trial_type.interactions[c('Model', 'bf')]
 
+load('bayes-factor-analysis-results-dimension.Rdata')
+dimension.main.effects <- as.data.frame(bf.dimension.main.effects.only)
+dimension.main.effects$time <- NULL
+dimension.main.effects$code <- NULL
+dimension.main.effects$error <- NULL
+dimension.main.effects$Model <- rownames(dimension.main.effects)
+dimension.main.effects$Model <- sapply(dimension.main.effects$Model, function(s) { return(pretty_model_names(s)) })
+dimension.main.effects <- dimension.main.effects[c('Model', 'bf')]
+dimension.main.effects$bf <- sapply(dimension.main.effects$bf, function(s) { return(pretty_sci_notation(s, digits=2)) })
+
+dimension.stim_type.interactions <- as.data.frame(bf.dimension.combined.stim_type)
+dimension.stim_type.interactions$time <- NULL
+dimension.stim_type.interactions$code <- NULL
+dimension.stim_type.interactions$error <- NULL
+rownames(dimension.stim_type.interactions) <- gsub("stim_type \\+ train_type \\+ dimension \\+ varying_dimension \\+ trial_type \\+ mturk_id \\+ train_type:varying_dimension", "&beta;<sub>Dimension</sub>", rownames(dimension.stim_type.interactions))
+dimension.stim_type.interactions$Model <- rownames(dimension.stim_type.interactions)
+dimension.stim_type.interactions$Model <- sapply(dimension.stim_type.interactions$Model, function(s) { return(pretty_model_names(s)) })
+dimension.stim_type.interactions$bf <- pretty_sci_notation(1 / dimension.stim_type.interactions$bf, digits=2)
+dimension.stim_type.interactions <- dimension.stim_type.interactions[c('Model', 'bf')]
+
+
+dimension.trial_type.interactions <- as.data.frame(bf.dimension.combined.trial_type)
+dimension.trial_type.interactions$time <- NULL
+dimension.trial_type.interactions$code <- NULL
+dimension.trial_type.interactions$error <- NULL
+rownames(dimension.trial_type.interactions) <- gsub("stim_type \\+ train_type \\+ dimension \\+ varying_dimension \\+ trial_type \\+ mturk_id \\+ train_type:varying_dimension", "&beta;<sub>Dimension</sub>", rownames(dimension.trial_type.interactions))
+dimension.trial_type.interactions$Model <- rownames(dimension.trial_type.interactions)
+dimension.trial_type.interactions$Model <- sapply(dimension.trial_type.interactions$Model, function(s) { return(pretty_model_names(s)) })
+dimension.trial_type.interactions$bf <- pretty_sci_notation(1 / dimension.trial_type.interactions$bf, digits=2)
+dimension.trial_type.interactions <- dimension.trial_type.interactions[c('Model', 'bf')]
+
 
 
 ```
 
+## Model comparisons for main effects, CP effects, and interactions with CP effects.
 
 ```{r, echo=FALSE, warning=F}
 
-# print the table ####
+# print the tables ####
 htmlTable(boundary.main.effects, 
           header=c('Model', 'BF<sub>10</sub><sup>a</sup>'),
           rnames=F,
           align='lc',
-          caption = "<em>Model Comparisons for Main Effects in Boundary-CP</em>",
+          caption = "<em>Table 1. Model Comparisons for Main Effects in Boundary CP</em>",
           tfoot = "<sup>a</sup>BF<sub>10</sub> is the Bayes factor in favor of the model against the model with only the random subject effect, ID."
           )
           
-# stim x cp interaction ####
 htmlTable(boundary.stim_type.interactions,
           header=c('Model', 'BF<sub>01</sub><sup>a</sup>'),
           rnames=F,
           align = 'lc',
-          caption = "<em>Model Comparisons for Interactions Between Boundary-CP and Stimulus Set</em>",
+          caption = "<em>Table 2. Model Comparisons for Interactions Between Boundary CP and Stimulus Set</em>",
           tfoot = txtMergeLines(
-            "<em>Note.</em> The base CP-only model, &beta;<sub>boundary</sub>, is Stimulus + Training + Pair + Relevant + ID + Training:Pair.",
-            "<sup>a</sup>BF<sub>01</sub> is the Bayes factor in favor of the CP-only model &beta;<sub>boundary</sub>"
+            "<em>Note.</em> The base CP-only model, &beta;<sub>Boundary</sub>, is Stimulus + Training + Pair + Relevant + ID + Training:Pair.",
+            "<sup>a</sup>BF<sub>01</sub> is the Bayes factor in favor of the CP-only model &beta;<sub>Boundary</sub>"
           )
         )
 
-# assessment x cp interaction ####
 htmlTable(boundary.trial_type.interactions,
           header=c('Model', 'BF<sub>01</sub><sup>a</sup>'),
           rnames=F,
           align = 'lc',
-          caption = "<em>Model Comparisons for Interactions Between Boundary-CP and Assessment Task</em>",
+          caption = "<em>Table 3. Model Comparisons for Interactions Between Boundary CP and Assessment Task</em>",
           tfoot = txtMergeLines(
-            "<em>Note.</em> The base CP-only model, &beta;<sub>boundary</sub>, is Stimulus + Training + Pair + Relevant + ID + Training:Pair.",
-            "<sup>a</sup>BF<sub>01</sub> is the Bayes factor in favor of the CP-only model &beta;<sub>boundary</sub>"
+            "<em>Note.</em> The base CP-only model, &beta;<sub>Boundary</sub>, is Stimulus + Training + Pair + Relevant + ID + Training:Pair.",
+            "<sup>a</sup>BF<sub>01</sub> is the Bayes factor in favor of the CP-only model &beta;<sub>Boundary</sub>"
+          )
+        )
+
+# print the table ####
+htmlTable(dimension.main.effects, 
+          header=c('Model', 'BF<sub>10</sub><sup>a</sup>'),
+          rnames=F,
+          align='lc',
+          caption = "<em>Table 4. Model Comparisons for Main Effects in Dimension CP</em>",
+          tfoot = "<sup>a</sup>BF<sub>10</sub> is the Bayes factor in favor of the model against the model with only the random subject effect, ID."
+          )
+          
+# stim x cp interaction ####
+htmlTable(dimension.stim_type.interactions,
+          header=c('Model', 'BF<sub>01</sub><sup>a</sup>'),
+          rnames=F,
+          align = 'lc',
+          caption = "<em>Table 5. Model Comparisons for Interactions Between Dimension CP and Stimulus Set</em>",
+          tfoot = txtMergeLines(
+            "<em>Note.</em> The base CP-only model, &beta;<sub>Dimension</sub>, is Stimulus + Training + Pair + Relevant + ID + Training:Pair.",
+            "<sup>a</sup>BF<sub>01</sub> is the Bayes factor in favor of the CP-only model &beta;<sub>Dimension</sub>"
+          )
+        )
+
+# assessment x cp interaction ####
+htmlTable(dimension.trial_type.interactions,
+          header=c('Model', 'BF<sub>01</sub><sup>a</sup>'),
+          rnames=F,
+          align = 'lc',
+          caption = "<em>Table 6. Model Comparisons for Interactions Between Dimension CP and Assessment Task</em>",
+          tfoot = txtMergeLines(
+            "<em>Note.</em> The base CP-only model, &beta;<sub>Dimension</sub>, is Stimulus + Training + Pair + Relevant + ID + Training:Pair.",
+            "<sup>a</sup>BF<sub>01</sub> is the Bayes factor in favor of the CP-only model &beta;<sub>Dimension</sub>"
           )
         )
   
