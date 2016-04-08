@@ -113,5 +113,5 @@ for(i in 2:length(bf.boundary.stim_type.against.cp)){
 bf.boundary.cp.dimension <- lmBF(z ~ stim_type + train_type + dimension + category_type + trial_type + mturk_id + train_type:category_type + train_type:category_type:dimension, whichRandom = c('mturk_id'),data=bf.boundary.data)/bf.boundary.cp
 
 # save output! ####
-save(bf.boundary.main.effects.only, bf.boundary.cp.dimension, bf.boundary.combined.stim_type, bf.boundary.combined.trial_type, bf.boundary.cp.effect, file="bayes-factor-analysis-results.Rdata")
+save(bf.boundary.main.effects.only, bf.boundary.cp.dimension, bf.boundary.combined.stim_type, bf.boundary.combined.trial_type, bf.boundary.cp.effect, file="data & analysis/export-data/bayes-factor-analysis-results.Rdata")
 
